@@ -14,6 +14,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
+import setListener
 
 /**
  * Created by Chris on 12/15/17.
@@ -120,16 +121,15 @@ class CircleMenuView: FrameLayout, View.OnClickListener {
 
         val click = getButtonClickAnimation(p0 as FloatingActionButton)
         click.duration = durationRing.toLong()
-        click.addListener(object: AnimatorListenerAdapter() {
-            override fun onAnimationStart(animation: Animator?) {
-                eventListener?.onButtonClickAnimationStart(this@CircleMenuView, buttons.indexOf(p0))
-            }
-
-            override fun onAnimationEnd(animation: Animator?) {
-                closedState = true
-                eventListener?.onButtonClickAnimationEnd(this@CircleMenuView, buttons.indexOf(p0))
-            }
-        })
+        click.setListener(
+                animationStart = {
+                    eventListener?.onButtonClickAnimationStart(this@CircleMenuView, buttons.indexOf(p0))
+                },
+                animationEnd = {
+                    closedState = true
+                    eventListener?.onButtonClickAnimationEnd(this@CircleMenuView, buttons.indexOf(p0))
+                }
+        )
 
         click.start()
     }
@@ -247,15 +247,10 @@ class CircleMenuView: FrameLayout, View.OnClickListener {
 
         val result = AnimatorSet()
         result.playTogether(alphaAnimation, rotateAnim, buttonsAppear)
-        result.addListener(object : AnimatorListenerAdapter() {
-            override fun onAnimationStart(animation: Animator?) {
-                isAnimating = true
-            }
-
-            override fun onAnimationEnd(animation: Animator?) {
-                isAnimating = false
-            }
-        })
+        result.setListener(
+                animationStart = {isAnimating = true},
+                animationEnd = {isAnimating = false}
+        )
 
         return result
     }
@@ -266,16 +261,13 @@ class CircleMenuView: FrameLayout, View.OnClickListener {
         val alpha1 = ObjectAnimator.ofFloat(menuButton, "alpha", 0f)
         val set1 = AnimatorSet()
         set1.playTogether(scaleX1, scaleY1, alpha1)
-        set1.addListener(object : AnimatorListenerAdapter() {
-            override fun onAnimationStart(animation: Animator?) {
-                buttons.forEach { it.visibility = View.INVISIBLE }
-            }
-
-            override fun onAnimationEnd(animation: Animator?) {
-                menuButton.rotation = 60f
-                menuButton.setImageResource(iconMenu)
-            }
-        })
+        set1.setListener(
+                animationStart = {buttons.forEach { it.visibility = View.INVISIBLE }},
+                animationEnd = {
+                    menuButton.rotation = 60f
+                    menuButton.setImageResource(iconMenu)
+                }
+        )
 
         val angle = ObjectAnimator.ofFloat(menuButton, "rotation", 0f)
         val alpha2 = ObjectAnimator.ofFloat(menuButton, "alpha", 1f)
@@ -287,15 +279,10 @@ class CircleMenuView: FrameLayout, View.OnClickListener {
 
         val result = AnimatorSet()
         result.play(set1).before(set2)
-        result.addListener(object: AnimatorListenerAdapter() {
-            override fun onAnimationStart(animation: Animator?) {
-                isAnimating = true
-            }
-
-            override fun onAnimationEnd(animation: Animator?) {
-                isAnimating = false
-            }
-        })
+        result.setListener(
+                animationStart = {isAnimating = true},
+                animationEnd = {isAnimating = false}
+        )
 
         return result
     }
@@ -329,11 +316,9 @@ class CircleMenuView: FrameLayout, View.OnClickListener {
         button.pivotY = pivotY - y.toFloat()
 
         val rotateButton = ObjectAnimator.ofFloat(button, "rotation", 0f, 360f)
-        rotateButton.addListener(object : AnimatorListenerAdapter() {
-            override fun onAnimationEnd(animation: Animator?) {
-                button.pivotX = pivotX
-                button.pivotY = pivotY
-            }
+        rotateButton.setListener(animationEnd = {
+            button.pivotX = pivotX
+            button.pivotY = pivotY
         })
 
         val elevation = menuButton.compatElevation
@@ -359,26 +344,25 @@ class CircleMenuView: FrameLayout, View.OnClickListener {
 
         val result = AnimatorSet()
         result.play(firstSet).before(lastSet)
-        result.addListener(object : AnimatorListenerAdapter() {
-            override fun onAnimationStart(animation: Animator?) {
-                isAnimating = true
+        result.setListener(
+                animationStart = {
+                    isAnimating = true
 
-                button.compatElevation = elevation + 1
-                ViewCompat.setZ(ringView, elevation + 1)
+                    button.compatElevation = elevation + 1
+                    ViewCompat.setZ(ringView, elevation + 1)
 
-                buttons.filter { it != button }.map { (it as FloatingActionButton).compatElevation = 0f }
+                    buttons.filter { it != button }.map { (it as FloatingActionButton).compatElevation = 0f }
 
-                ringView.scaleX = 1f
-                ringView.scaleY = 1f
-                ringView.visibility = View.VISIBLE
-            }
-
-            override fun onAnimationEnd(animation: Animator?) {
-                isAnimating = false
-                buttons.forEach { (it as FloatingActionButton).compatElevation = elevation }
-                ViewCompat.setZ(ringView, elevation)
-            }
-        })
+                    ringView.scaleX = 1f
+                    ringView.scaleY = 1f
+                    ringView.visibility = View.VISIBLE
+                },
+                animationEnd = {
+                    isAnimating = false
+                    buttons.forEach { (it as FloatingActionButton).compatElevation = elevation }
+                    ViewCompat.setZ(ringView, elevation)
+                }
+        )
 
         return result
     }
